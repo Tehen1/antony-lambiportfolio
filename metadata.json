@@ -1,0 +1,9 @@
+{
+  "name": "Antony LambiPortfolio",
+  "description": "Portfolio de Antony Lambi — Développeur Senior Fullstack Blockchain & IA à Liège. Solutions Web3, Smart Contracts et micro-agents autonomes.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
