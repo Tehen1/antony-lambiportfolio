@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Send, CheckCircle2, ShieldAlert, Loader2, Sparkles, User, Mail, Building, Plus } from "lucide-react";
 
 export default function ContactForm() {
@@ -15,51 +15,86 @@ export default function ContactForm() {
     message: ""
   });
 
-  const [cfVerified, setCfVerified] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorNotice, setErrorNotice] = useState("");
 
-  const handleVerifyTurnstile = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (cfVerified || isVerifying) return;
-    setIsVerifying(true);
+  // Load Cloudflare Turnstile script and expose callbacks globally
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
 
-    setTimeout(() => {
-      setCfVerified(true);
+    // Expose callbacks globally for Turnstile
+    (window as any).handleTurnstileSuccess = (token: string) => {
+      setTurnstileToken(token);
       setIsVerifying(false);
-    }, 1500);
-  };
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    (window as any).handleTurnstileError = () => {
+      setTurnstileToken(null);
+      setIsVerifying(false);
+      setErrorNotice("Échec de la vérification Turnstile. Veuillez réessayer.");
+    };
+
+    return () => {
+      document.head.removeChild(script);
+      delete (window as any).handleTurnstileSuccess;
+      delete (window as any).handleTurnstileError;
+    };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
       setErrorNotice("Veuillez remplir tous les champs obligatoires (Nom, Email, Message).");
       return;
     }
 
-    if (!cfVerified) {
-      setErrorNotice("Veuillez valider le puzzle de sécurité de la vérification bot.");
+    if (!turnstileToken) {
+      setErrorNotice("Veuillez valider la vérification Cloudflare Turnstile.");
       return;
     }
 
     setErrorNotice("");
     setSubmitting(true);
 
-    // Simulate lead registration API response
-    setTimeout(() => {
-      setSuccess(true);
-      setSubmitting(false);
-      setFormData({
-        name: "",
-        email: "",
-        company: "",
-        budget: "< 5k€",
-        message: ""
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          turnstileToken,
+        }),
       });
-      setCfVerified(false);
-    }, 1200);
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setSuccess(true);
+        setFormData({
+          name: "",
+          email: "",
+          company: "",
+          budget: "< 5k€",
+          message: ""
+        });
+        setTurnstileToken(null);
+      } else {
+        setErrorNotice(result.error || "Erreur lors de l'envoi du message.");
+      }
+    } catch (error) {
+      setErrorNotice("Erreur de connexion. Veuillez réessayer.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const budgetOptions = ["< 5k€", "5-15k€", "15-50k€", "50k€+"];
@@ -193,28 +228,18 @@ export default function ContactForm() {
                 />
               </div>
 
-              {/* simulated Cloudflare Turnstile visual panel */}
+              {/* Cloudflare Turnstile Widget */}
               <div className="p-4 bg-bg-dark rounded border border-border-dark/60 flex items-center justify-between font-sans">
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleVerifyTurnstile}
-                    className={`w-6 h-6 rounded border transition-all flex items-center justify-center cursor-pointer ${
-                      cfVerified
-                        ? "border-neon-green bg-neon-green/10 text-neon-green"
-                        : isVerifying
-                          ? "border-neon-blue bg-neon-blue/10"
-                          : "border-border-dark bg-bg-card hover:border-text-muted"
-                    }`}
-                  >
-                    {cfVerified ? (
-                      <CheckCircle2 size={16} />
-                    ) : isVerifying ? (
-                      <Loader2 size={12} className="animate-spin text-neon-blue" />
-                    ) : null}
-                  </button>
+                  <div 
+                    className="cf-turnstile"
+                    data-sitekey="0x4AAAAAADaOEqUHkguzSOG-"
+                    data-callback="handleTurnstileSuccess"
+                    data-error-callback="handleTurnstileError"
+                  ></div>
                   <div className="text-xs">
-                    <span className="text-white block font-bold font-mono text-[10px] tracking-widest">CLOUDFLARE TURNSTILE INTEGRATED</span>
-                    <span className="text-text-muted text-[10px]">Vérifier l'absence d'automation robotique</span>
+                    <span className="text-white block font-bold font-mono text-[10px] tracking-widest">CLOUDFLARE TURNSTILE</span>
+                    <span className="text-text-muted text-[10px]">Vérification anti-bot</span>
                   </div>
                 </div>
                 

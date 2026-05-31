@@ -20,6 +20,7 @@ import FAQ from "./components/FAQ";
 import ContactForm from "./components/ContactForm";
 import Footer from "./components/Footer";
 import SiteJsonLd from "./components/SiteJsonLd";
+import OllamaChat from "./components/OllamaChat";
 import { ArrowLeft, Globe, Settings, TrendingUp, HelpCircle } from "lucide-react";
 
 export default function App() {
@@ -162,6 +163,9 @@ export default function App() {
 
       {/* 3. Global Legal / Corporate Footer */}
       <Footer />
+
+      {/* 4. Ollama Chat Widget */}
+      <OllamaChat />
     </div>
   );
 }

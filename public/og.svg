@@ -1,0 +1,45 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00f0ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-gradient)" />
+  
+  <!-- Grid pattern -->
+  <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+    <circle cx="1" cy="1" r="1" fill="#ffffff" opacity="0.1" />
+  </pattern>
+  <rect width="1200" height="630" fill="url(#grid)" />
+  
+  <!-- Spotlights -->
+  <circle cx="1000" cy="100" r="300" fill="#7c3aed" opacity="0.15" />
+  <circle cx="200" cy="530" r="300" fill="#00f0ff" opacity="0.15" />
+  
+  <!-- Main text -->
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">
+    Antony Lambi
+  </text>
+  
+  <text x="600" y="350" font-family="Arial, sans-serif" font-size="36" fill="url(#text-gradient)" text-anchor="middle">
+    Blockchain + AI + SEO Expert
+  </text>
+  
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" fill="#a0a0a0" text-anchor="middle">
+    Liège, Belgium
+  </text>
+  
+  <!-- Decorative elements -->
+  <rect x="500" y="480" width="200" height="4" fill="url(#text-gradient)" rx="2" />
+  
+  <circle cx="600" cy="500" r="8" fill="#00f0ff" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite" />
+  </circle>
+</svg>

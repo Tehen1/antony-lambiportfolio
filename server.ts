@@ -286,6 +286,143 @@ Génère des mesures de Core Web Vitals simulées réalistes, un score de perfor
     }
   });
 
+  // Contact Form Endpoint with Turnstile verification and Resend email
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, company, budget, message, turnstileToken } = req.body;
+
+      // Validate required fields
+      if (!name || !email || !message) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Validate Turnstile token
+      if (!turnstileToken) {
+        return res.status(400).json({ error: 'Missing Turnstile token' });
+      }
+
+      // Verify Turnstile token with Cloudflare
+      const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+      if (!turnstileSecret) {
+        return res.status(500).json({ error: 'Server configuration error' });
+      }
+
+      const verifyResponse = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken,
+            remoteip: (req.headers['x-forwarded-for'] as string) || (req.headers['x-real-ip'] as string) || '',
+          }),
+        }
+      );
+
+      const verifyResult = await verifyResponse.json();
+
+      if (!verifyResult.success) {
+        return res.status(400).json({ error: 'Turnstile verification failed' });
+      }
+
+      // Send email using Resend
+      const resendApiKey = process.env.RESEND_API_KEY;
+      if (!resendApiKey) {
+        return res.status(500).json({ error: 'Email service not configured' });
+      }
+
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+          to: process.env.CONTACT_EMAIL || 'your-email@example.com',
+          subject: `Nouveau contact portfolio: ${name}`,
+          html: `
+            <h2>Nouveau message du portfolio</h2>
+            <p><strong>Nom:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Société:</strong> ${company || 'Non spécifié'}</p>
+            <p><strong>Budget:</strong> ${budget}</p>
+            <p><strong>Message:</strong></p>
+            <p>${message}</p>
+          `,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const emailError = await emailResponse.text();
+        console.error('Email send error:', emailError);
+        return res.status(500).json({ error: 'Failed to send email' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Contact form error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Ollama Chat Endpoint
+  app.post("/api/ollama-chat", async (req, res) => {
+    try {
+      const { model, messages } = req.body;
+
+      if (!model || !messages) {
+        return res.status(400).json({ error: 'Missing model or messages' });
+      }
+
+      // Call local Ollama server
+      const ollamaResponse = await fetch('http://localhost:11434/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          stream: false,
+        }),
+      });
+
+      if (!ollamaResponse.ok) {
+        const errorText = await ollamaResponse.text();
+        console.error('Ollama error:', errorText);
+        return res.status(500).json({ error: 'Failed to communicate with Ollama server' });
+      }
+
+      const data = await ollamaResponse.json();
+      res.json({ response: data.message?.content || data.response });
+    } catch (error) {
+      console.error('Ollama chat error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Ollama Models Endpoint
+  app.get("/api/ollama-chat", async (req, res) => {
+    try {
+      // Get list of available models from local Ollama
+      const ollamaResponse = await fetch('http://localhost:11434/api/tags');
+      
+      if (!ollamaResponse.ok) {
+        return res.status(500).json({ error: 'Failed to fetch models from Ollama' });
+      }
+
+      const data = await ollamaResponse.json();
+      res.json({ models: data.models || [] });
+    } catch (error) {
+      console.error('Ollama models error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // ----------------------------------------------------
   // Front-End Integration / Vite Serving
   // ----------------------------------------------------
