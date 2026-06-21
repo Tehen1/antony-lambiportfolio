@@ -448,5 +448,5 @@ Génère des mesures de Core Web Vitals simulées réalistes, un score de perfor
     console.log(`Port-bound and mainnet-ready! Server running at http://0.0.0.0:${PORT}`);
   });
 }
-
+ 
 startServer();
