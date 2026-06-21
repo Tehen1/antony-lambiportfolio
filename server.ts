@@ -126,7 +126,14 @@ async function startServer() {
         return res.status(400).json({ error: "Missing 'owner' or 'repo' query parameters." });
       }
 
-      const url = `https://api.github.com/repos/${owner}/${repo}`;
+      const safeOwner = owner.trim();
+      const safeRepo = repo.trim();
+      const githubNamePattern = /^[A-Za-z0-9._-]{1,100}$/;
+      if (!githubNamePattern.test(safeOwner) || !githubNamePattern.test(safeRepo)) {
+        return res.status(400).json({ error: "Invalid 'owner' or 'repo' format." });
+      }
+
+      const url = `https://api.github.com/repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(safeRepo)}`;
       const headers: Record<string, string> = {
         "User-Agent": "aistudio-build-github-agent",
         "Accept": "application/vnd.github.v3+json",
@@ -141,15 +148,15 @@ async function startServer() {
         const data: any = await response.json();
         return res.json({ stars: data.stargazers_count });
       } else {
-        console.log(`[GitHub API] Safe fallback stars applied for ${owner}/${repo} (Status: ${response.status})`);
+        console.log(`[GitHub API] Safe fallback stars applied for ${safeOwner}/${safeRepo} (Status: ${response.status})`);
         // Send a default/fallback star count based on the repo name for smooth representation
-        const fallbackStars = (repo && (repo.includes("fixie") || repo === "fixie-run")) ? 42 : 18;
+        const fallbackStars = (safeRepo.includes("fixie") || safeRepo === "fixie-run") ? 42 : 18;
         return res.json({ stars: fallbackStars, rateLimited: response.status === 403 });
       }
     } catch (err: any) {
       console.log(`[GitHub API] Safe fallback stars applied for the request on error`);
       // Fallback
-      const fallbackStars = (repo && typeof repo === "string" && (repo.includes("fixie") || repo === "fixie-run")) ? 42 : 18;
+      const fallbackStars = (typeof repo === "string" && repo.includes("fixie")) || repo === "fixie-run" ? 42 : 18;
       res.json({ stars: fallbackStars });
     }
   });
