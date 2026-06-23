@@ -4,25 +4,59 @@ on:
   schedule:
     - cron: "15 3 * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/dependabot.yml'
+      - '.github/workflows/codeql-analysis.yml'
+      - '.github/workflows/security-audit.yml'
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
   security-events: read
+  checks: read
 
 jobs:
   remediate:
+    name: Collect and remediate security alerts
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Collect alerts
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install GitHub CLI
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update && sudo apt install -y gh
+
+      - name: Collect Dependabot alerts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api repos/${{ github.repository }}/dependabot/alerts --paginate > dependabot-alerts.json
-          gh api repos/${{ github.repository }}/code-scanning/alerts --paginate > code-scanning-alerts.json
+          gh api repos/${{ github.repository }}/dependabot/alerts --paginate --jq '.[] | select(.state == "open")' > dependabot-alerts.json || echo "[]" > dependabot-alerts.json
+
+      - name: Collect CodeQL alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/code-scanning/alerts --paginate --jq '.[] | select(.state == "open")' > code-scanning-alerts.json || echo "[]" > code-scanning-alerts.json
+
+      - name: Collect Secret scanning alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/secret-scanning/alerts --paginate --jq '.[] | select(.state == "open")' > secret-scanning-alerts.json || echo "[]" > secret-scanning-alerts.json
 
       - name: Create tracking issues for critical alerts
         env:
@@ -35,3 +69,37 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python3 .github/scripts/open_remediation_pr.py
+
+  dependabot-pr-triage:
+    name: Triage Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch PR metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Label PR by update type
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          UPDATE_TYPE="${{ steps.metadata.outputs.update-type }}"
+          case "$UPDATE_TYPE" in
+            *semver-patch*) LABEL="patch" ;;
+            *semver-minor*) LABEL="minor" ;;
+            *semver-major*) LABEL="major" ;;
+            *) LABEL="other" ;;
+          esac
+          gh pr edit "$PR_NUMBER" --add-label "dependabot:$LABEL" || true
+
+      - name: Assign security team for security updates
+        if: steps.metadata.outputs.update-type == 'security-update'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr edit "$PR_NUMBER" --add-label "security" --add-label "priority:high" || true
+          gh api repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers --input '{"team_reviewers":["security"]}' || true

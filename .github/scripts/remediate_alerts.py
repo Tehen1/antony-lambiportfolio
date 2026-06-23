@@ -12,6 +12,7 @@ MAX_ALERTS = 20
 root = Path(".")
 dependabot_file = root / "dependabot-alerts.json"
 code_scanning_file = root / "code-scanning-alerts.json"
+secret_scanning_file = root / "secret-scanning-alerts.json"
 
 def load_json(path):
     if not path.exists():
@@ -46,6 +47,7 @@ def is_critical_or_high(sev):
 
 dependabot = load_json(dependabot_file)
 code_scanning = load_json(code_scanning_file)
+secret_scanning = load_json(secret_scanning_file)
 
 seen = set()
 
@@ -71,12 +73,14 @@ for a in dependabot[:MAX_ALERTS]:
         or a.get("package_name")
         or "unknown-package"
     )
+    ghsa_id = a.get("security_advisory", {}).get("ghsa_id") or a.get("ghsa_id") or "N/A"
     title = f"{ISSUE_PREFIX} Dependabot {sev.upper()} - {pkg}"
     body = "\n".join([
         f"Repository: `{REPO}`",
         f"Type: Dependabot alert",
         f"Severity: `{sev}`",
         f"Package: `{pkg}`",
+        f"GHSA ID: `{ghsa_id}`",
         "",
         "Actions:",
         "- validate the upgrade path",
@@ -111,5 +115,36 @@ for a in code_scanning[:MAX_ALERTS]:
         "- review the vulnerable code path",
         "- patch the root cause",
         "- add regression tests",
+    ])
+    create_issue(title, body)
+
+for a in secret_scanning[:MAX_ALERTS]:
+    sev = "critical"
+    state = a.get("state", "open")
+    if state != "open":
+        continue
+
+    key = f"secretscan:{alert_key(a)}"
+    if key in seen:
+        continue
+    seen.add(key)
+
+    secret_type = a.get("secret_type", "unknown-secret")
+    secret_type_display = a.get("secret_type_display_name", secret_type)
+    resolution = a.get("resolution", "open")
+    title = f"{ISSUE_PREFIX} Secret scanning CRITICAL - {secret_type_display}"
+    body = "\n".join([
+        f"Repository: `{REPO}`",
+        f"Type: Secret scanning alert",
+        f"Severity: `critical`",
+        f"Secret type: `{secret_type_display}`",
+        f"Resolution: `{resolution}`",
+        "",
+        "⚠️ IMMEDIATE ACTION REQUIRED:",
+        "- Rotate the exposed secret immediately",
+        "- Revoke the compromised credential",
+        "- Update all systems using this secret",
+        "- Review access logs for unauthorized usage",
+        "- Remove secret from git history if committed",
     ])
     create_issue(title, body)

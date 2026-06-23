@@ -1,0 +1,31 @@
+name: "CodeQL Config for antony-lambiportfolio"
+
+disable-default-queries: false
+
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+paths-ignore:
+  - "node_modules"
+  - "dist"
+  - "build"
+  - ".vite"
+  - "coverage"
+  - "*.config.*"
+  - "*.d.ts"
+
+paths:
+  - "src"
+  - "api"
+  - "lib"
+  - "server.ts"
+
+# Custom query suites for specific security concerns
+query-filters:
+  - exclude:
+      id: "js/redos"
+      reason: "False positives in regex validation patterns"
+  - exclude:
+      id: "js/path-injection"
+      reason: "Controlled paths in build scripts"

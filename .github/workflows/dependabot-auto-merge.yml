@@ -2,27 +2,84 @@ name: Dependabot auto-merge
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   pull_request_review:
+    types: [submitted]
   check_suite:
     types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
+  statuses: read
+  checks: read
   security-events: read
 
 jobs:
   auto-merge:
+    name: Auto-merge Dependabot PRs
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: dependabot/fetch-metadata@v1
+      - name: Fetch PR metadata
         id: metadata
+        uses: dependabot/fetch-metadata@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for safe updates
+      - name: Check if PR is ready for auto-merge
+        id: ready
+        run: |
+          # Check if all required checks pass
+          CHECKS_URL="${{ github.event.pull_request._links.checks.href }}"
+          CHECKS=$(gh api "$CHECKS_URL" --jq '.check_runs[] | select(.name | test("(?i)build|test|lint|audit|security")) | .conclusion' | sort -u)
+          
+          if echo "$CHECKS" | grep -q "failure\|cancelled\|timed_out"; then
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "Some checks failed"
+            exit 0
+          fi
+          
+          if echo "$CHECKS" | grep -q "in_progress\|queued\|requested"; then
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "Checks still running"
+            exit 0
+          fi
+          
+          echo "ready=true" >> $GITHUB_OUTPUT
+
+      - name: Enable auto-merge for patch/minor updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          # For major updates, require "auto-merge" label
+          if [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-major" ]]; then
+            if ! gh pr view "$PR_URL" --json labels --jq '.labels[].name' | grep -q "^auto-merge$"; then
+              echo "Major update requires 'auto-merge' label"
+              exit 0
+            fi
+          fi
+          
+          # Enable auto-merge
+          gh pr merge --auto --squash "$PR_URL"
+          echo "Auto-merge enabled for $PR_URL"
+
+      - name: Add auto-merge label for patch/minor
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$GITHUB_EVENT_PULL_REQUEST_URL"
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr edit "$PR_URL" --add-label "auto-merge" || true
+
+      - name: Request review for major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr edit "$PR_URL" --add-label "needs-review" || true
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers --input '{"reviewers":["${{ github.repository_owner }}"]}' || true
