@@ -30,7 +30,7 @@
     "@types/node": "^22.14.0",
     "@vercel/node": "^5.1.14",
     "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
+    "esbuild": ">=0.28.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
@@ -41,6 +41,10 @@
     "undici": ">=6.24.0",
     "postcss": ">=8.5.10",
     "protobufjs": ">=7.6.3",
-    "esbuild": ">=0.28.1"
+    "esbuild": ">=0.28.1",
+    "path-to-regexp": ">=7.0.0",
+    "js-yaml": ">=4.1.2",
+    "smol-toml": ">=1.6.1",
+    "ajv": ">=8.17.1"
   }
 }
