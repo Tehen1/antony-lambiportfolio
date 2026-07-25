@@ -28,10 +28,10 @@ def main():
 
     # Create branch
     branch = f"security-remediation/{BRANCH}"
-    run("git", "checkout", "-b", branch)
+    run("git", "checkout", "-B", branch)
     run("git", "add", "-A")
     run("git", "commit", "-m", "fix: security remediation")
-    run("git", "push", "-u", "origin", branch)
+    run("git", "push", "-u", "origin", branch, "--force")
 
     # Create PR
     title = "Security remediation"
