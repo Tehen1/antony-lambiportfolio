@@ -7,6 +7,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
+import rateLimit from "express-rate-limit";
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Load environment variables
@@ -434,6 +435,13 @@ Génère des mesures de Core Web Vitals simulées réalistes, un score de perfor
   // Front-End Integration / Vite Serving
   // ----------------------------------------------------
 
+  const staticRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300, // limit each IP to 300 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   if (process.env.NODE_ENV !== "production") {
     // Development Mode: Mount Vite's dev server middleware
     const vite = await createViteServer({
@@ -444,8 +452,9 @@ Génère des mesures de Core Web Vitals simulées réalistes, un score de perfor
   } else {
     // Production Mode: Serve built static files from 'dist'
     const distPath = path.join(process.cwd(), "dist");
+    app.use(staticRateLimiter);
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*", staticRateLimiter, (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
