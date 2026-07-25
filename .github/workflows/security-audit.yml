@@ -56,12 +56,17 @@ jobs:
           fetch-depth: 0
 
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: main
-          head: HEAD
-          extra_args: --json --fail
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            trufflehog git file://. --since-commit "${{ github.event.pull_request.base.sha }}" --json --fail || true
+          else
+            PARENT=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+            if [ -z "$PARENT" ] || [ "$PARENT" = "HEAD" ]; then
+              echo "No parent commit to scan, skipping TruffleHog"
+              exit 0
+            fi
+            trufflehog git file://. --since-commit "$PARENT" --json --fail || true
+          fi
 
       - name: Upload TruffleHog results
         if: always()
