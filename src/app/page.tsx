@@ -3,8 +3,6 @@ import type { Metadata } from 'next';
 import { buildMetadata } from '@/lib/metadata';
 import { personJsonLd, websiteJsonLd } from '@/lib/json-ld';
 
-export const experimental_ppr = true;
-
 export const metadata: Metadata = buildMetadata({
   alternates: { canonical: '/' },
 });
