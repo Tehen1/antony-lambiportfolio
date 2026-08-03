@@ -3,11 +3,12 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    ppr: 'incremental',
   },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 31536000,
     remotePatterns: [],
   },
   compress: true,
@@ -24,10 +25,34 @@ const nextConfig: NextConfig = {
           key: 'Permissions-Policy',
           value: 'camera=(), microphone=(), geolocation=()',
         },
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=63072000; includeSubDomains; preload',
+        },
+        {
+          key: 'Content-Security-Policy',
+          value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: https:",
+            "connect-src 'self' https:",
+          ].join('; '),
+        },
       ],
     },
     {
       source: '/_next/static/(.*)',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'public, max-age=31536000, immutable',
+        },
+      ],
+    },
+    {
+      source: '/(.*)\\.(ico|png|jpg|jpeg|svg|webp|avif|woff2)',
       headers: [
         {
           key: 'Cache-Control',

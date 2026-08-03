@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { buildMetadata } from '@/lib/metadata';
-import { personJsonLd, websiteJsonLd } from '@/lib/json-ld';
+import { personJsonLd, websiteJsonLd, professionalServiceJsonLd } from '@/lib/json-ld';
 
 export const metadata: Metadata = buildMetadata({
   alternates: { canonical: '/' },
@@ -13,20 +13,19 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([personJsonLd(), websiteJsonLd()]),
+          __html: JSON.stringify([
+            personJsonLd(),
+            websiteJsonLd(),
+            professionalServiceJsonLd(),
+          ]),
         }}
       />
       <div className="min-h-screen flex flex-col">
-        {/* Hero — static shell, rendered at build time */}
         <section
-      <section
-        aria-labelledby="hero-heading"
-        className="flex-1 flex items-center justify-center px-6 py-24"
-      >
           aria-labelledby="hero-heading"
           className="flex-1 flex items-center justify-center px-6 py-24"
         >
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
+          <div className="max-w-3xl mx-auto text-center">
             <h1
               id="hero-heading"
               className="text-4xl sm:text-5xl font-bold tracking-tight mb-6"
@@ -40,10 +39,23 @@ export default function HomePage() {
               Smart contracts Solidity, zkSync Era, dApps React/Next.js.
               Disponible pour missions freelance.
             </p>
+            <div className="mt-8 flex flex-wrap gap-3 justify-center">
+              <a
+                href="#projects"
+                className="px-6 py-3 rounded-lg bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Voir les projets
+              </a>
+              <a
+                href="#contact"
+                className="px-6 py-3 rounded-lg border border-border text-sm font-medium hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Me contacter
+              </a>
+            </div>
           </div>
         </section>
 
-        {/* Dynamic section — streamed via Suspense */}
         <Suspense
           fallback={
             <div className="py-16 text-center text-muted-foreground" aria-live="polite">
@@ -58,10 +70,10 @@ export default function HomePage() {
   );
 }
 
-// RSC async component — placeholder until real data source is wired
 async function ProjectsSection() {
   return (
     <section
+      id="projects"
       aria-labelledby="projects-heading"
       className="py-16 px-6 bg-muted/30"
     >
