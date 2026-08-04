@@ -3,7 +3,7 @@ import { ArrowDown, Github, Linkedin, Mail } from 'lucide-react';
 
 export function Hero() {
   return (
-    <section aria-label="Pré°°sentation" className="min-h-screen flex items-center justify-center px-4">
+    <section aria-label="Présentation" className="min-h-screen flex items-center justify-center px-4">
       <div className="container mx-auto max-w-4xl text-center">
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">Antony Lambi</h1>
         <p className="text-xl md:text-2xl text-muted-foreground mb-8">Dé°°veloppeur Blockchain & Web3</p>
