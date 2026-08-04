@@ -22,7 +22,7 @@ export function getGeminiClient(): GoogleGenAI {
 
 export async function generateContentWithRetryAndFallback(
   client: GoogleGenAI,
-  params: { contents: unknown; config?: unknown },
+  params: any,
   primaryModel = "gemini-2.0-flash",
   fallbackModel = "gemini-2.0-flash-lite"
 ) {
