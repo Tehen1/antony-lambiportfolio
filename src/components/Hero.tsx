@@ -29,7 +29,7 @@ export function Hero() {
             <Mail className="w-6 h-6" />
           </a>
         </div>
-        <a href="#skills" aria-label="Aller aux compé°°tences" className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors animate-bounce">
+        <a href="#skills" aria-label="Aller aux compétences" className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors animate-bounce">
           <ArrowDown className="w-6 h-6" />
         </a>
       </div>
