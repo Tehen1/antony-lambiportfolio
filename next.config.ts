@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    ppr: 'incremental',
+    cacheComponents: true,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
