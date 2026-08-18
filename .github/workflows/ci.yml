@@ -20,25 +20,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
-
-      - name: Activate pnpm with Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@8.15.8 --activate
-          pnpm --version
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Typecheck
-        run: pnpm run typecheck
+        run: npm run typecheck
 
       - name: Lint
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Build
-        run: pnpm run build
+        run: npm run build
         env:
           NEXT_PUBLIC_SITE_URL: https://antony-lambiportfolio.vercel.app
