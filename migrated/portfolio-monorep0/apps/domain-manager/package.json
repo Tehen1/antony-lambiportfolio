@@ -18,7 +18,7 @@
     "@supabase/auth-helpers-react": "^0.4.2",
     "openai": "^4.24.0",
     "@google/generative-ai": "^0.2.1",
-    "axios": "^1.18.0",
+    "axios": "^1.20.0",
     "zod": "^3.22.0",
     "@portfolio/ui": "workspace:*",
     "@portfolio/database": "workspace:*",
